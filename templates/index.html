@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WAF Simulator v2 — Attack Launcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f4f0;
+      --surface: #ffffff;
+      --surface2: #f9f9f6;
+      --border: #e0dfd8;
+      --border2: #d0cfc8;
+      --accent: #c0392b;
+      --accent-h: #a93226;
+      --green: #1e8449;
+      --blue: #1a5276;
+      --purple: #6c3483;
+      --orange: #d35400;
+      --text: #1a1a1a;
+      --muted: #666660;
+      --light: #999992;
+      --mono: 'DM Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+      --radius: 6px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.05);
+      --fin-color: #1a5276;
+      --hc-color: #1e8449;
+      --saas-color: #6c3483;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; min-height: 100vh; line-height: 1.5; }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--accent);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: .9rem; }
+    .brand-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .brand h1 { font-size: 1.2rem; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+    .brand h1 span { color: var(--accent); }
+    .brand-sub { font-family: var(--mono); font-size: .7rem; color: var(--muted); letter-spacing: .05em; margin-top: 1px; }
+    .header-right { display: flex; align-items: center; gap: 1.25rem; }
+    .target-pill { font-family: var(--mono); font-size: .8rem; background: #fff8f0; border: 1px solid #f5cba7; color: var(--orange); padding: .3rem .8rem; border-radius: 20px; font-weight: 500; }
+    .status-dot { display: flex; align-items: center; gap: .4rem; font-size: .8rem; color: var(--muted); font-family: var(--mono); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; transition: background .3s; }
+    .dot.running { background: var(--accent); animation: blink 1s infinite; }
+    .dot.idle { background: var(--green); }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
+    .logout-link { font-size: .85rem; color: var(--muted); text-decoration: none; font-weight: 500; transition: color .15s; }
+    .logout-link:hover { color: var(--accent); }
+
+    /* ── Layout ── */
+    .page { max-width: 1400px; margin: 0 auto; padding: 1.75rem 2rem 3rem; }
+
+    /* ── Stats ── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.75rem; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; box-shadow: var(--shadow); display: flex; align-items: center; gap: 1rem; }
+    .stat-icon { font-size: 1.6rem; line-height: 1; }
+    .stat-value { font-size: 2rem; font-weight: 700; line-height: 1; font-family: var(--mono); }
+    .stat-value.red { color: var(--accent); }
+    .stat-value.orange { color: var(--orange); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.blue { color: var(--blue); }
+    .stat-label { font-size: .75rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+
+    /* ── Section headings ── */
+    .section-heading { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .75rem; display: flex; align-items: center; gap: .5rem; }
+    .section-heading::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .step-num { font-family: var(--mono); font-size: .7rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .4rem; }
+
+    /* ── Cards ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .card-head { padding: .85rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface2); }
+    .card-head-title { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: flex; align-items: center; gap: .5rem; }
+    .card-body { padding: 1.25rem; }
+
+    /* ── Industry cards ── */
+    .industry-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .industry-card {
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s, transform .1s;
+      background: var(--surface);
+      position: relative;
+      user-select: none;
+    }
+    .industry-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); transform: translateY(-1px); }
+    .industry-card.selected { box-shadow: 0 4px 16px rgba(0,0,0,.12); transform: translateY(-1px); }
+    .industry-card.selected.fin  { border-color: var(--fin-color);  background: #f0f4f8; }
+    .industry-card.selected.hc   { border-color: var(--hc-color);   background: #f0f8f2; }
+    .industry-card.selected.saas { border-color: var(--saas-color); background: #f5f0f8; }
+    .ind-icon { font-size: 2.2rem; margin-bottom: .6rem; display: block; }
+    .ind-name { font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: .15rem; }
+    .ind-campaign { font-family: var(--mono); font-size: .72rem; font-weight: 500; margin-bottom: .4rem; }
+    .fin  .ind-campaign { color: var(--fin-color); }
+    .hc   .ind-campaign { color: var(--hc-color); }
+    .saas .ind-campaign { color: var(--saas-color); }
+    .ind-desc { font-size: .82rem; color: var(--muted); line-height: 1.45; }
+    .ind-check { position: absolute; top: .75rem; right: .75rem; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .75rem; opacity: 0; transition: opacity .2s; }
+    .industry-card.selected .ind-check { opacity: 1; }
+    .fin.selected  .ind-check { background: var(--fin-color);  color: #fff; }
+    .hc.selected   .ind-check { background: var(--hc-color);   color: #fff; }
+    .saas.selected .ind-check { background: var(--saas-color); color: #fff; }
+
+    /* ── Mode toggle ── */
+    .mode-row { display: flex; gap: .75rem; margin-bottom: 1rem; }
+    .mode-btn {
+      flex: 1;
+      border: 2px solid var(--border);
+      background: var(--surface2);
+      border-radius: var(--radius);
+      padding: .75rem 1rem;
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: center;
+      transition: all .15s;
+    }
+    .mode-btn:hover { border-color: var(--border2); color: var(--text); }
+    .mode-btn.active { border-color: var(--accent); color: var(--accent); background: #fdf3f2; }
+    .mode-sub { font-size: .72rem; font-weight: 400; color: var(--light); display: block; margin-top: 2px; }
+
+    /* ── Phase selector ── */
+    .phase-selector { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .phase-btn {
+      border: 2px solid var(--border);
+      background: var(--surface2);
+      border-radius: var(--radius);
+      padding: .45rem .9rem;
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--muted);
+      transition: all .15s;
+    }
+    .phase-btn:hover { border-color: var(--border2); color: var(--text); }
+    .phase-btn.active { border-color: var(--accent); color: var(--accent); background: #fdf3f2; }
+
+    /* ── Volume ── */
+    .vol-row { display: flex; gap: .6rem; }
+    .vol-btn { flex: 1; border: 2px solid var(--border); background: var(--surface2); border-radius: var(--radius); padding: .6rem .5rem; cursor: pointer; font-family: var(--sans); font-size: .85rem; font-weight: 600; color: var(--muted); text-align: center; transition: all .15s; }
+    .vol-btn:hover { border-color: var(--border2); color: var(--text); }
+    .vol-btn.active { border-color: var(--accent); color: var(--accent); background: #fdf3f2; }
+    .vol-sub { font-size: .7rem; font-weight: 400; color: var(--light); display: block; margin-top: 1px; }
+
+    /* ── Live info ── */
+    .live-info { background: #f0f4ff; border: 1px solid #c7d2fe; border-radius: var(--radius); padding: .85rem 1rem; font-size: .85rem; color: #3730a3; margin-bottom: 1rem; line-height: 1.5; }
+    .live-info strong { color: #1e1b4b; }
+
+    /* ── Launch/Stop buttons ── */
+    #launch-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--sans);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      padding: .9rem;
+      cursor: pointer;
+      margin-top: .75rem;
+      transition: background .15s, transform .1s, box-shadow .15s;
+      box-shadow: 0 2px 8px rgba(192,57,43,.25);
+    }
+    #launch-btn:hover { background: var(--accent-h); box-shadow: 0 4px 16px rgba(192,57,43,.3); }
+    #launch-btn:active { transform: scale(.99); }
+    #launch-btn:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+    #stop-btn {
+      width: 100%;
+      background: #fff;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      border-radius: var(--radius);
+      font-family: var(--sans);
+      font-size: .95rem;
+      font-weight: 700;
+      padding: .75rem;
+      cursor: pointer;
+      margin-top: .5rem;
+      display: none;
+      transition: all .15s;
+    }
+    #stop-btn:hover { background: #fdf3f2; }
+
+    /* ── Main content columns ── */
+    .content-cols { display: grid; grid-template-columns: 420px 1fr; gap: 1.25rem; align-items: start; }
+    @media(max-width: 1000px) { .content-cols { grid-template-columns: 1fr; } }
+
+    /* ── Phase timeline ── */
+    .phase-timeline { margin-bottom: 1rem; }
+    .timeline-track {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 1rem;
+      padding: .5rem 0;
+    }
+    .tl-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      position: relative;
+    }
+    .tl-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--border2);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--muted);
+      transition: all .3s;
+      position: relative;
+      z-index: 2;
+      font-family: var(--mono);
+    }
+    .tl-circle.done { background: var(--green); border-color: var(--green); color: #fff; }
+    .tl-circle.active { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 4px rgba(192,57,43,.15); animation: tl-pulse 1.5s ease-in-out infinite; }
+    @keyframes tl-pulse { 0%,100%{box-shadow:0 0 0 4px rgba(192,57,43,.15)} 50%{box-shadow:0 0 0 8px rgba(192,57,43,.06)} }
+    .tl-label { font-size: .65rem; color: var(--muted); text-align: center; margin-top: .35rem; line-height: 1.3; max-width: 70px; font-weight: 500; }
+    .tl-label.active { color: var(--accent); font-weight: 700; }
+    .tl-label.done { color: var(--green); }
+    .tl-line {
+      flex: 1;
+      height: 2px;
+      background: var(--border2);
+      margin-bottom: 24px;
+      transition: background .3s;
+      position: relative;
+      z-index: 1;
+    }
+    .tl-line.done { background: var(--green); }
+    .tl-line.active { background: linear-gradient(90deg, var(--green), var(--accent)); }
+
+    /* ── Talking points ── */
+    .talking-card {
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .talking-header {
+      padding: .75rem 1rem;
+      font-size: .85rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .talking-body { padding: 1rem; display: flex; flex-direction: column; gap: .85rem; }
+    .tp-row { display: flex; gap: .75rem; align-items: flex-start; }
+    .tp-label {
+      font-family: var(--mono);
+      font-size: .65rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      padding: .2rem .5rem;
+      border-radius: 3px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      margin-top: .05rem;
+    }
+    .tp-label.fires { background: #e8f4fd; color: #1a5276; border: 1px solid #aed6f1; }
+    .tp-label.cf    { background: #fef9e7; color: #d35400; border: 1px solid #f9e79f; }
+    .tp-label.s1    { background: #fdf2f8; color: #8e44ad; border: 1px solid #d7bde2; }
+    .tp-label.auto  { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
+    .tp-text { font-size: .85rem; color: var(--text); line-height: 1.5; }
+    .tp-desc { font-size: .82rem; color: var(--muted); margin-bottom: .25rem; font-style: italic; }
+    .talking-empty { padding: 2rem 1rem; text-align: center; color: var(--light); font-size: .85rem; }
+
+    /* ── Live counters ── */
+    .live-counters {
+      display: none;
+      background: #1a1a2e;
+      color: #a0aec0;
+      border-radius: var(--radius);
+      padding: .85rem 1rem;
+      font-family: var(--mono);
+      font-size: .82rem;
+      margin-bottom: .75rem;
+      gap: 1.5rem;
+    }
+    .live-counters.visible { display: flex; flex-wrap: wrap; }
+    .lc-item { display: flex; flex-direction: column; gap: .1rem; }
+    .lc-val { font-size: 1.1rem; font-weight: 500; color: #e2e8f0; }
+    .lc-key { font-size: .65rem; color: #718096; text-transform: uppercase; letter-spacing: .08em; }
+
+    /* ── Log ── */
+    #log-output {
+      background: #1a1a1a;
+      height: 540px;
+      overflow-y: auto;
+      padding: 1rem;
+      font-family: var(--mono);
+      font-size: .82rem;
+      line-height: 1.8;
+      border-radius: 0;
+    }
+    #log-output::-webkit-scrollbar { width: 5px; }
+    #log-output::-webkit-scrollbar-track { background: #111; }
+    #log-output::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    .log-line { display: flex; gap: .75rem; align-items: baseline; }
+    .log-ts { color: #555; flex-shrink: 0; font-size: .75rem; }
+    .log-tag { flex-shrink: 0; width: 64px; text-align: center; padding: .05rem 0; border-radius: 3px; font-size: .68rem; font-weight: 500; }
+    .log-msg { color: #ccc; word-break: break-all; }
+    .log-tag.BLOCKED { background: rgba(192,57,43,.25); color: #e74c3c; }
+    .log-tag.PASSED  { background: rgba(30,132,73,.2);  color: #2ecc71; }
+    .log-tag.PHASE   { background: rgba(211,84,0,.2);   color: #e67e22; }
+    .log-tag.ERROR   { background: rgba(255,255,255,.07); color: #777; }
+    .log-tag.INFO    { background: rgba(26,82,118,.2);  color: #5dade2; }
+    .log-empty { color: #444; font-size: .82rem; padding-top: 8rem; text-align: center; }
+    .log-clear-btn { font-family: var(--mono); font-size: .72rem; color: var(--muted); background: none; border: none; cursor: pointer; padding: 0; transition: color .15s; }
+    .log-clear-btn:hover { color: var(--accent); }
+
+    .hint { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+    .hint strong { color: var(--text); }
+
+    @media(max-width: 700px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .industry-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">🎯</div>
+    <div>
+      <h1>WAF <span>Simulator</span> <span style="font-size:.9rem;color:var(--muted);font-weight:400">v2</span></h1>
+      <div class="brand-sub">CLOUDFLARE + SENTINELONE DEMO PLATFORM</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="target-pill">▸ {{ target }}</div>
+    <div class="status-dot">
+      <div class="dot idle" id="status-dot"></div>
+      <span id="status-text">Idle</span>
+    </div>
+    <a href="/logout" class="logout-link">Log out</a>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- Stats bar -->
+  <div class="stats-row">
+    <div class="stat"><div class="stat-icon">📡</div><div><div class="stat-value blue" id="stat-total">0</div><div class="stat-label">Requests Sent</div></div></div>
+    <div class="stat"><div class="stat-icon">🛑</div><div><div class="stat-value red" id="stat-blocked">0</div><div class="stat-label">Blocked by WAF</div></div></div>
+    <div class="stat"><div class="stat-icon">⚠️</div><div><div class="stat-value orange" id="stat-passed">0</div><div class="stat-label">Passed Through</div></div></div>
+    <div class="stat"><div class="stat-icon">📊</div><div><div class="stat-value green" id="stat-rate">0%</div><div class="stat-label">Block Rate</div></div></div>
+  </div>
+
+  <!-- Step 1: Industry -->
+  <div class="section-heading"><span>Step 1</span> Select Industry</div>
+  <div class="industry-grid" style="margin-bottom:1.5rem;" id="industry-grid">
+    <div class="industry-card fin selected" onclick="selectIndustry('financial',this)">
+      <span class="ind-check">✓</span>
+      <span class="ind-icon">🏦</span>
+      <div class="ind-name">Financial Services</div>
+      <div class="ind-campaign">Operation Wire Fraud</div>
+      <div class="ind-desc">Sophisticated threat actor targeting Meridian Bank's online banking platform to intercept wire transfers.</div>
+    </div>
+    <div class="industry-card hc" onclick="selectIndustry('healthcare',this)">
+      <span class="ind-check">✓</span>
+      <span class="ind-icon">💊</span>
+      <div class="ind-name">Healthcare</div>
+      <div class="ind-campaign">Operation HIPAA Breach</div>
+      <div class="ind-desc">Criminal group targeting MedCore Health Systems to steal patient PHI for sale on the dark web.</div>
+    </div>
+    <div class="industry-card saas" onclick="selectIndustry('saas',this)">
+      <span class="ind-check">✓</span>
+      <span class="ind-icon">☁️</span>
+      <div class="ind-name">SaaS / Tech</div>
+      <div class="ind-campaign">Operation Tenant Escape</div>
+      <div class="ind-desc">Competitor's hired group targeting CloudMatrix SaaS platform to steal customer tenant data and API keys.</div>
+    </div>
+  </div>
+
+  <!-- Step 2 + content columns -->
+  <div class="section-heading"><span>Step 2</span> Configure &amp; Launch</div>
+  <div class="content-cols">
+
+    <!-- Left: controls -->
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+
+      <!-- Mode selection -->
+      <div class="card">
+        <div class="card-head"><div class="card-head-title">⚡ Demo Mode</div></div>
+        <div class="card-body">
+          <div class="mode-row">
+            <button class="mode-btn active" id="btn-preseed" onclick="setMode('preseed',this)">
+              🌙 Pre-seed
+              <span class="mode-sub">Fast · night before demo</span>
+            </button>
+            <button class="mode-btn" id="btn-live" onclick="setMode('live',this)">
+              📡 Live Mode
+              <span class="mode-sub">Slow drip · during presentation</span>
+            </button>
+          </div>
+
+          <!-- Pre-seed options -->
+          <div id="preseed-options">
+            <div class="step-num" style="margin-bottom:.5rem;">Phase Selection</div>
+            <div class="phase-selector" id="phase-selector">
+              <button class="phase-btn" onclick="setPhase('1',this)">Phase 1</button>
+              <button class="phase-btn" onclick="setPhase('2',this)">Phase 2</button>
+              <button class="phase-btn" onclick="setPhase('3',this)">Phase 3</button>
+              <button class="phase-btn" onclick="setPhase('4',this)">Phase 4</button>
+              <button class="phase-btn" onclick="setPhase('5',this)">Phase 5</button>
+              <button class="phase-btn active" onclick="setPhase('full',this)">All Phases</button>
+            </div>
+            <div class="step-num" style="margin-bottom:.5rem;margin-top:.75rem;">Volume</div>
+            <div class="vol-row" id="volume-group">
+              <button class="vol-btn" onclick="setVolume(this,'low')">Low<span class="vol-sub">~40 reqs</span></button>
+              <button class="vol-btn active" onclick="setVolume(this,'medium')">Medium<span class="vol-sub">~150 reqs</span></button>
+              <button class="vol-btn" onclick="setVolume(this,'high')">High<span class="vol-sub">~400 reqs</span></button>
+            </div>
+            <div class="hint" style="margin-top:.6rem;">Use <strong>High → All Phases</strong> the night before to seed 400+ WAF events.</div>
+          </div>
+
+          <!-- Live mode info -->
+          <div id="live-options" style="display:none;">
+            <div class="live-info">
+              Fires <strong>5 requests every 30 seconds</strong> · phases advance automatically every <strong>3 minutes</strong> · all 5 phases run sequentially.
+              <br>Best for live audience demos — slow enough to narrate each phase.
+            </div>
+            <div id="live-counters" class="live-counters">
+              <div class="lc-item"><div class="lc-val" id="lc-phase">—</div><div class="lc-key">Current Phase</div></div>
+              <div class="lc-item"><div class="lc-val" id="lc-next">—</div><div class="lc-key">Next Batch</div></div>
+              <div class="lc-item"><div class="lc-val" id="lc-advance">—</div><div class="lc-key">Phase Advances</div></div>
+            </div>
+          </div>
+
+          <button id="launch-btn" onclick="launch()">▶ &nbsp; Launch Campaign</button>
+          <button id="stop-btn" onclick="stopCampaign()">⏹ &nbsp; Stop Campaign</button>
+        </div>
+      </div>
+
+      <!-- Phase timeline + talking points -->
+      <div class="card">
+        <div class="card-head"><div class="card-head-title">🗺 Phase Timeline</div></div>
+        <div class="card-body">
+          <div class="phase-timeline">
+            <div class="timeline-track" id="timeline-track">
+              <!-- rendered by JS -->
+            </div>
+          </div>
+          <div id="talking-points">
+            <div class="talking-empty">Select an industry and launch a campaign to see live talking points here.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: live log -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-title">📋 Live Attack Log</div>
+        <button class="log-clear-btn" onclick="clearLog()">Clear</button>
+      </div>
+      <div id="log-output"><div class="log-empty">// Select industry + mode above, then press Launch</div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── State ────────────────────────────────────────────────────────────────
+  let selectedIndustry = 'financial';
+  let selectedMode     = 'preseed';
+  let selectedPhase    = 'full';
+  let selectedVolume   = 'medium';
+  let lastId           = 0;
+  let pollInterval     = null;
+  let stats            = { total: 0, blocked: 0, passed: 0 };
+  let scenarioData     = {};
+  let activePhase      = 0;
+  let livePhaseStart   = null;
+
+  // ── Load scenario metadata ───────────────────────────────────────────────
+  async function loadScenarios() {
+    try {
+      const res = await fetch('/scenarios');
+      scenarioData = await res.json();
+      renderTimeline(0);
+    } catch(e) { /* ignore */ }
+  }
+
+  loadScenarios();
+
+  // ── Industry selection ───────────────────────────────────────────────────
+  function selectIndustry(id, el) {
+    document.querySelectorAll('.industry-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedIndustry = id;
+    renderTimeline(activePhase);
+    if (activePhase > 0) renderTalkingPoints(activePhase);
+  }
+
+  // ── Mode toggle ──────────────────────────────────────────────────────────
+  function setMode(mode, el) {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    selectedMode = mode;
+    document.getElementById('preseed-options').style.display = mode === 'preseed' ? 'block' : 'none';
+    document.getElementById('live-options').style.display    = mode === 'live'    ? 'block' : 'none';
+    const launchBtn = document.getElementById('launch-btn');
+    launchBtn.textContent = mode === 'live' ? '📡  Start Live Demo' : '▶  Launch Campaign';
+  }
+
+  // ── Phase / volume buttons ───────────────────────────────────────────────
+  function setPhase(val, el) {
+    document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    selectedPhase = val;
+  }
+
+  function setVolume(el, val) {
+    document.querySelectorAll('.vol-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    selectedVolume = val;
+  }
+
+  // ── Stats ────────────────────────────────────────────────────────────────
+  function updateStats() {
+    document.getElementById('stat-total').textContent   = stats.total;
+    document.getElementById('stat-blocked').textContent = stats.blocked;
+    document.getElementById('stat-passed').textContent  = stats.passed;
+    const r = stats.total > 0 ? Math.round((stats.blocked / stats.total) * 100) : 0;
+    document.getElementById('stat-rate').textContent = r + '%';
+  }
+
+  function setStatus(running) {
+    document.getElementById('status-dot').className = 'dot ' + (running ? 'running' : 'idle');
+    document.getElementById('status-text').textContent = running ? 'Running...' : 'Idle';
+    document.getElementById('launch-btn').disabled = running;
+    document.getElementById('stop-btn').style.display = running ? 'block' : 'none';
+  }
+
+  // ── Timeline rendering ───────────────────────────────────────────────────
+  function renderTimeline(currentPhase) {
+    const track = document.getElementById('timeline-track');
+    const phases = (scenarioData[selectedIndustry] || {phases: [{name:'Phase 1'},{name:'Phase 2'},{name:'Phase 3'},{name:'Phase 4'},{name:'Phase 5'}]}).phases;
+    const colors = { financial: '#1a5276', healthcare: '#1e8449', saas: '#6c3483' };
+    const color  = colors[selectedIndustry] || '#c0392b';
+
+    let html = '';
+    for (let i = 0; i < 5; i++) {
+      const num = i + 1;
+      const ph  = phases[i] || { name: 'Phase ' + num };
+      const shortName = ph.name.split(' ').slice(0,2).join(' ');
+
+      let circleClass = '';
+      let labelClass  = '';
+      if (num < currentPhase)       { circleClass = 'done'; labelClass = 'done'; }
+      else if (num === currentPhase) { circleClass = 'active'; labelClass = 'active'; }
+
+      html += `<div class="tl-node">
+        <div class="tl-circle ${circleClass}" style="${circleClass==='active'?'border-color:'+color+';color:'+color:''}">${circleClass==='done'?'✓':num}</div>
+        <div class="tl-label ${labelClass}">${esc(shortName)}</div>
+      </div>`;
+      if (i < 4) {
+        let lineClass = num < currentPhase ? 'done' : (num === currentPhase ? 'active' : '');
+        html += `<div class="tl-line ${lineClass}"></div>`;
+      }
+    }
+    track.innerHTML = html;
+  }
+
+  // ── Talking points ───────────────────────────────────────────────────────
+  function renderTalkingPoints(phaseNum) {
+    const container = document.getElementById('talking-points');
+    const phases = (scenarioData[selectedIndustry] || {}).phases;
+    if (!phases || !phaseNum) {
+      container.innerHTML = '<div class="talking-empty">Launch a campaign to see live talking points.</div>';
+      return;
+    }
+    const ph = phases[phaseNum - 1];
+    if (!ph) return;
+    const colors = { financial: '#1a5276', healthcare: '#1e8449', saas: '#6c3483' };
+    const bgColors = { financial: '#f0f4f8', healthcare: '#f0f8f2', saas: '#f5f0f8' };
+    const color = colors[selectedIndustry] || '#c0392b';
+    const bg    = bgColors[selectedIndustry] || '#fdf3f2';
+
+    container.innerHTML = `
+      <div class="talking-card">
+        <div class="talking-header" style="background:${color}">
+          <span>Phase ${ph.number} / 5</span>
+          <span style="font-size:.9rem;">${esc(ph.name)}</span>
+        </div>
+        <div class="talking-body" style="background:${bg}">
+          <div class="tp-desc">${esc(ph.description)}</div>
+          <div class="tp-row">
+            <span class="tp-label fires">What's Firing</span>
+            <span class="tp-text">${esc(ph.what_fires)}</span>
+          </div>
+          <div class="tp-row">
+            <span class="tp-label cf">Cloudflare</span>
+            <span class="tp-text">${esc(ph.cloudflare_story)}</span>
+          </div>
+          <div class="tp-row">
+            <span class="tp-label s1">SentinelOne AI</span>
+            <span class="tp-text">${esc(ph.sentinelone_story)}</span>
+          </div>
+          <div class="tp-row">
+            <span class="tp-label auto">Hyperautomation</span>
+            <span class="tp-text">${esc(ph.hyperautomation)}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Log rendering ────────────────────────────────────────────────────────
+  function addLog(entry) {
+    const out   = document.getElementById('log-output');
+    const empty = out.querySelector('.log-empty');
+    if (empty) empty.remove();
+
+    const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+    let tag = 'INFO';
+    if (entry.type === 'blocked') { tag = 'BLOCKED'; stats.total++; stats.blocked++; }
+    else if (entry.type === 'passed')  { tag = 'PASSED';  stats.total++; stats.passed++; }
+    else if (entry.type === 'phase')   { tag = 'PHASE'; }
+    else if (entry.type === 'error')   { tag = 'ERROR'; }
+
+    updateStats();
+
+    let msg;
+    if (entry.type === 'blocked' || entry.type === 'passed') {
+      msg = `[${entry.method || 'GET'}] ${entry.url} — ${entry.label || ''} — HTTP ${entry.status} — src: ${entry.ip || ''}`;
+    } else {
+      msg = entry.message || entry.label || '';
+    }
+
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `<span class="log-ts">${time}</span><span class="log-tag ${tag}">${tag}</span><span class="log-msg">${esc(msg)}</span>`;
+    out.appendChild(line);
+    out.scrollTop = out.scrollHeight;
+  }
+
+  function clearLog() {
+    document.getElementById('log-output').innerHTML = '<div class="log-empty">// Log cleared</div>';
+    stats = { total: 0, blocked: 0, passed: 0 };
+    updateStats();
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Polling ──────────────────────────────────────────────────────────────
+  let livePhaseNum = 0;
+  let livePhaseStartTime = null;
+  let liveBatchCountdown = 30;
+  let liveTimerInterval = null;
+
+  function startPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = setInterval(async () => {
+      try {
+        const res  = await fetch('/logs?since=' + lastId);
+        const data = await res.json();
+
+        data.entries.forEach(entry => {
+          addLog(entry);
+          lastId = Math.max(lastId, entry.id);
+
+          // Track phase changes
+          if (entry.phase && entry.phase !== activePhase) {
+            activePhase = entry.phase;
+            renderTimeline(activePhase);
+            renderTalkingPoints(activePhase);
+            if (selectedMode === 'live') {
+              livePhaseNum       = activePhase;
+              livePhaseStartTime = Date.now();
+              liveBatchCountdown = 30;
+            }
+          }
+        });
+
+        if (!data.running && lastId > 0) {
+          stopPolling();
+          onCampaignComplete();
+        }
+      } catch(e) { /* server briefly unavailable */ }
+    }, 1000);
+  }
+
+  function stopPolling() {
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    if (liveTimerInterval) { clearInterval(liveTimerInterval); liveTimerInterval = null; }
+  }
+
+  function startLiveTimer() {
+    if (liveTimerInterval) clearInterval(liveTimerInterval);
+    livePhaseStartTime = Date.now();
+    liveBatchCountdown = 30;
+
+    liveTimerInterval = setInterval(() => {
+      if (!activePhase) return;
+      const phaseElapsed  = Math.floor((Date.now() - (livePhaseStartTime || Date.now())) / 1000);
+      const phaseRemaining = Math.max(0, 180 - phaseElapsed);
+      liveBatchCountdown  = Math.max(0, liveBatchCountdown - 1);
+      if (liveBatchCountdown <= 0) liveBatchCountdown = 30;
+
+      const phases = (scenarioData[selectedIndustry] || {}).phases || [];
+      const phaseName = phases[activePhase-1] ? phases[activePhase-1].name : `Phase ${activePhase}`;
+
+      document.getElementById('lc-phase').textContent   = `${activePhase}/5 — ${phaseName.split(' ').slice(0,2).join(' ')}`;
+      document.getElementById('lc-next').textContent    = liveBatchCountdown + 's';
+      document.getElementById('lc-advance').textContent = fmtTime(phaseRemaining);
+    }, 1000);
+  }
+
+  function fmtTime(s) {
+    const m = Math.floor(s/60), sec = s%60;
+    return `${m}:${String(sec).padStart(2,'0')}`;
+  }
+
+  // ── Launch ───────────────────────────────────────────────────────────────
+  async function launch() {
+    const btn = document.getElementById('launch-btn');
+    const statusRes = await fetch('/status');
+    const statusData = await statusRes.json();
+    if (statusData.running) {
+      addLog({ type: 'error', message: 'A campaign is already running — press Stop first.' });
+      return;
+    }
+
+    // Reset
+    document.getElementById('log-output').innerHTML = '';
+    stats = { total: 0, blocked: 0, passed: 0 };
+    updateStats();
+    lastId = 0;
+    activePhase = 0;
+    renderTimeline(0);
+    renderTalkingPoints(0);
+
+    const body = {
+      industry: selectedIndustry,
+      mode:     selectedMode,
+      phase:    selectedMode === 'preseed' ? selectedPhase : 'full',
+      volume:   selectedVolume,
+    };
+
+    const res = await fetch('/launch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      addLog({ type: 'error', message: err.error || 'Launch failed.' });
+      return;
+    }
+
+    setStatus(true);
+    startPolling();
+
+    if (selectedMode === 'live') {
+      document.getElementById('live-counters').classList.add('visible');
+      startLiveTimer();
+    }
+  }
+
+  // ── Stop ─────────────────────────────────────────────────────────────────
+  async function stopCampaign() {
+    await fetch('/stop', { method: 'POST' });
+    stopPolling();
+    setStatus(false);
+    document.getElementById('live-counters').classList.remove('visible');
+    addLog({ type: 'info', message: 'Campaign stopped by user.' });
+  }
+
+  // ── Campaign complete ─────────────────────────────────────────────────────
+  function onCampaignComplete() {
+    setStatus(false);
+    document.getElementById('live-counters').classList.remove('visible');
+    renderTimeline(5);
+  }
+
+  // ── Initial render ────────────────────────────────────────────────────────
+  renderTimeline(0);
+</script>
+</body>
+</html>
