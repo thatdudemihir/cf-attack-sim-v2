@@ -283,6 +283,18 @@ def launch():
     return jsonify({"status": "started", "industry": industry, "mode": mode})
 
 
+# ── API: clear NovaMind incident (manual reset) ──────────────────────────────
+
+@app.route("/clear-novamind", methods=["POST"])
+def clear_novamind():
+    if not session.get("logged_in"):
+        return jsonify({"error": "Unauthorized"}), 401
+    threading.Thread(
+        target=_signal_novamind_incident, args=(False,), daemon=True
+    ).start()
+    return jsonify({"status": "cleared"})
+
+
 # ── API: stop attack ─────────────────────────────────────────────────────────
 
 @app.route("/stop", methods=["POST"])
