@@ -204,10 +204,9 @@ def _finish_campaign():
         "Campaign complete. Check Cloudflare Security Events + SentinelOne AI-SIEM.",
         current_phase, current_industry, log_buffer, log_counter, entry_type="info",
     )
-    if current_industry == "ctf":
-        threading.Thread(
-            target=_signal_novamind_incident, args=(False,), daemon=True
-        ).start()
+    # NovaMind incident is NOT auto-cleared on campaign completion — the operator
+    # must explicitly click "Clear NovaMind Status Page" so the status page stays
+    # in incident mode for the duration of the CTF demo.
 
 
 # ── Auth routes ──────────────────────────────────────────────────────────────
