@@ -41,6 +41,7 @@ stop_flag      = threading.Event()
 
 LIVE_INTERVAL_SECONDS  = 30
 LIVE_PHASE_DURATION_SECONDS = 180
+CTF_LIVE_PHASE_DURATION_SECONDS = 90   # 1.5 min per box for CTF live mode
 LIVE_BATCH_SIZE = 5
 
 # ── Pre-seed volume config ───────────────────────────────────────────────────
@@ -173,9 +174,10 @@ def run_live_mode(industry):
             phase_num, industry, log_buffer, log_counter,
         )
 
+        phase_duration = CTF_LIVE_PHASE_DURATION_SECONDS if industry == "ctf" else LIVE_PHASE_DURATION_SECONDS
         while not stop_flag.is_set():
             elapsed = time.time() - phase_start
-            if elapsed >= LIVE_PHASE_DURATION_SECONDS:
+            if elapsed >= phase_duration:
                 break
 
             for _ in range(LIVE_BATCH_SIZE):

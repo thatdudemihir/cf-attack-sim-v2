@@ -375,19 +375,26 @@
     }
     .ctf-intro strong { color: #4a1404; }
 
-    /* 4-box CTF grid */
+    /* 4-box CTF grid — informational, not selectors */
     .ctf-box-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; }
     @media(max-width:900px){ .ctf-box-grid { grid-template-columns: repeat(2,1fr); } }
     @media(max-width:600px){ .ctf-box-grid { grid-template-columns: 1fr; } }
 
     .ctf-box-card {
       border: 2px solid var(--border); border-radius: var(--radius);
-      padding: 1rem; cursor: pointer;
-      transition: border-color .15s, box-shadow .15s, transform .1s;
-      background: var(--surface); position: relative; user-select: none;
+      padding: 1rem; background: var(--surface);
+      transition: border-color .3s, background .3s;
     }
-    .ctf-box-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); transform: translateY(-1px); }
-    .ctf-box-card.selected { border-color: var(--ctf); background: #fff5f0; box-shadow: 0 4px 16px rgba(124,45,18,.12); }
+    .ctf-box-card.firing {
+      border-color: var(--ctf); background: #fff5f0;
+      box-shadow: 0 0 0 3px rgba(124,45,18,.1);
+      animation: ctf-pulse 1.5s ease-in-out infinite;
+    }
+    .ctf-box-card.done { border-color: var(--green); background: #f0f9f4; }
+    @keyframes ctf-pulse {
+      0%,100% { box-shadow: 0 0 0 3px rgba(124,45,18,.1); }
+      50%      { box-shadow: 0 0 0 6px rgba(124,45,18,.04); }
+    }
     .ctf-box-num {
       font-family: var(--mono); font-size: .68rem; font-weight: 700;
       color: var(--ctf); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .3rem;
@@ -396,13 +403,12 @@
     .ctf-box-name { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: .15rem; }
     .ctf-box-sub  { font-size: .72rem; color: var(--ctf); font-family: var(--mono); font-weight: 500; margin-bottom: .3rem; }
     .ctf-box-desc { font-size: .78rem; color: var(--muted); line-height: 1.4; }
-    .ctf-box-check {
-      position: absolute; top: .6rem; right: .6rem; width: 18px; height: 18px;
-      border-radius: 50%; background: var(--ctf); color: #fff;
-      display: flex; align-items: center; justify-content: center; font-size: .7rem;
-      opacity: 0; transition: opacity .2s;
+    .ctf-box-status {
+      margin-top: .5rem; font-size: .68rem; font-family: var(--mono);
+      font-weight: 600; color: var(--light);
     }
-    .ctf-box-card.selected .ctf-box-check { opacity: 1; }
+    .ctf-box-card.firing .ctf-box-status { color: var(--ctf); }
+    .ctf-box-card.done   .ctf-box-status { color: var(--green); }
 
     /* CTF phase selector — 4 boxes */
     #ctf-phase-selector .phase-btn.active { border-color: var(--ctf); color: var(--ctf); background: #fff5f0; }
@@ -604,40 +610,40 @@
       Target: <code style="font-size:.82rem">{{ novamind_target }}</code>
     </div>
 
-    <!-- Box selector -->
-    <div class="section-heading"><span>Select Box</span> Choose a CTF challenge box</div>
+    <!-- Box status display (informational — highlights as each box fires) -->
+    <div class="section-heading"><span>CTF Boxes</span> Attack progression — highlights as each box fires</div>
     <div class="ctf-box-grid" style="margin-bottom:1.5rem;" id="ctf-box-grid">
-      <div class="ctf-box-card selected" onclick="selectCTFBox('ctf',this)">
-        <div class="ctf-box-check">✓</div>
+      <div class="ctf-box-card" id="ctf-card-1">
         <div class="ctf-box-num">Box 1</div>
         <span class="ctf-box-icon">🛡️</span>
         <div class="ctf-box-name">CF WAF</div>
         <div class="ctf-box-sub">Recon + Rule Triggers</div>
         <div class="ctf-box-desc">Scanner recon, SQLi probes, and header anomalies that light up CF Managed Rules.</div>
+        <div class="ctf-box-status" id="ctf-card-status-1">waiting</div>
       </div>
-      <div class="ctf-box-card" onclick="selectCTFBox('ctf',this)">
-        <div class="ctf-box-check">✓</div>
+      <div class="ctf-box-card" id="ctf-card-2">
         <div class="ctf-box-num">Box 2</div>
         <span class="ctf-box-icon">🤖</span>
         <div class="ctf-box-name">Bot Management</div>
         <div class="ctf-box-sub">Constant JA4, Rotating UA</div>
         <div class="ctf-box-desc">Polymorphic bot changes User-Agent every request — but JA4 fingerprint never changes.</div>
+        <div class="ctf-box-status" id="ctf-card-status-2">waiting</div>
       </div>
-      <div class="ctf-box-card" onclick="selectCTFBox('ctf',this)">
-        <div class="ctf-box-check">✓</div>
+      <div class="ctf-box-card" id="ctf-card-3">
         <div class="ctf-box-num">Box 3</div>
         <span class="ctf-box-icon">💉</span>
         <div class="ctf-box-name">Firewall for AI</div>
         <div class="ctf-box-sub">Prompt Injection Attack</div>
         <div class="ctf-box-desc">Rogue AI fires prompt injection at /api/v1/chat — jailbreaks, DAN mode, JNDI in prompts.</div>
+        <div class="ctf-box-status" id="ctf-card-status-3">waiting</div>
       </div>
-      <div class="ctf-box-card" onclick="selectCTFBox('ctf',this)">
-        <div class="ctf-box-check">✓</div>
+      <div class="ctf-box-card" id="ctf-card-4">
         <div class="ctf-box-num">Box 4</div>
         <span class="ctf-box-icon">💥</span>
         <div class="ctf-box-name">Agentic Breakout</div>
         <div class="ctf-box-sub">Full Multi-Vector Storm</div>
         <div class="ctf-box-desc">All vectors combined at high volume — RCE, SQLi, XSS, AI injection across every endpoint.</div>
+        <div class="ctf-box-status" id="ctf-card-status-4">waiting</div>
       </div>
     </div>
 
@@ -662,13 +668,18 @@
             </div>
 
             <div id="ctf-preseed-options">
-              <div class="step-num" style="margin-bottom:.5rem;">Box Selection</div>
-              <div class="phase-selector" id="ctf-phase-selector">
-                <button class="phase-btn" onclick="setCTFPhase('1',this)">Box 1</button>
-                <button class="phase-btn" onclick="setCTFPhase('2',this)">Box 2</button>
-                <button class="phase-btn" onclick="setCTFPhase('3',this)">Box 3</button>
-                <button class="phase-btn" onclick="setCTFPhase('4',this)">Box 4</button>
-                <button class="phase-btn active" onclick="setCTFPhase('full',this)">All Boxes</button>
+              <div class="step-num" style="margin-bottom:.5rem;">Pre-seed Target</div>
+              <div id="ctf-phase-selector" style="display:flex;flex-direction:column;gap:.5rem;">
+                <button class="phase-btn active" onclick="setCTFPhase('full',this)" style="width:100%;font-size:.95rem;padding:.65rem 1rem;border-width:2px;">
+                  🧠 &nbsp; All Boxes <span style="font-size:.75rem;font-weight:400;opacity:.7;">— full CTF scenario (recommended)</span>
+                </button>
+                <div style="font-size:.72rem;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-top:.15rem;">Troubleshoot individual box:</div>
+                <div style="display:flex;gap:.4rem;">
+                  <button class="phase-btn" onclick="setCTFPhase('1',this)" style="flex:1;font-size:.8rem;">Box 1<span style="display:block;font-size:.67rem;opacity:.65;">WAF</span></button>
+                  <button class="phase-btn" onclick="setCTFPhase('2',this)" style="flex:1;font-size:.8rem;">Box 2<span style="display:block;font-size:.67rem;opacity:.65;">Bot Mgmt</span></button>
+                  <button class="phase-btn" onclick="setCTFPhase('3',this)" style="flex:1;font-size:.8rem;">Box 3<span style="display:block;font-size:.67rem;opacity:.65;">AI Firewall</span></button>
+                  <button class="phase-btn" onclick="setCTFPhase('4',this)" style="flex:1;font-size:.8rem;">Box 4<span style="display:block;font-size:.67rem;opacity:.65;">Breakout</span></button>
+                </div>
               </div>
               <div class="step-num" style="margin-bottom:.5rem;margin-top:.75rem;">Volume</div>
               <div class="vol-row" id="ctf-volume-group">
@@ -681,7 +692,7 @@
 
             <div id="ctf-live-options" style="display:none;">
               <div class="live-info" style="background:#fff5f0;border-color:#f5cba7;color:#7c2d12;">
-                Fires <strong>5 requests every 30 seconds</strong> · boxes advance every <strong>3 minutes</strong> · all 4 boxes run sequentially.
+                Fires <strong>5 requests every 30 seconds</strong> · boxes advance every <strong>1.5 minutes</strong> · all 4 boxes run sequentially.
                 <br>The NovaMind status page will flip to <strong>Incident Detected</strong> automatically.
               </div>
             </div>
@@ -1072,11 +1083,26 @@
   renderTimeline(0);
   renderCTFTimeline(0);
 
-  // ── CTF box selection ─────────────────────────────────────────────────────
-  function selectCTFBox(industry, el) {
-    document.querySelectorAll('.ctf-box-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-    renderCTFTimeline(ctfActivePhase);
+  // ── CTF card highlight helpers ────────────────────────────────────────────
+  function resetCTFCards() {
+    for (let i = 1; i <= 4; i++) {
+      const card   = document.getElementById('ctf-card-' + i);
+      const status = document.getElementById('ctf-card-status-' + i);
+      if (card)   { card.classList.remove('firing', 'done'); }
+      if (status) { status.textContent = 'waiting'; }
+    }
+  }
+
+  function highlightCTFCard(phaseNum) {
+    for (let i = 1; i <= 4; i++) {
+      const card   = document.getElementById('ctf-card-' + i);
+      const status = document.getElementById('ctf-card-status-' + i);
+      if (!card) continue;
+      card.classList.remove('firing', 'done');
+      if (i < phaseNum)       { card.classList.add('done');   if (status) status.textContent = '✓ complete'; }
+      else if (i === phaseNum){ card.classList.add('firing'); if (status) status.textContent = '▶ firing…'; }
+      else                    { if (status) status.textContent = 'waiting'; }
+    }
   }
 
   // ── CTF mode / phase / volume ─────────────────────────────────────────────
@@ -1215,6 +1241,7 @@
     updateStats();
     lastId = 0;
     ctfActivePhase = 0;
+    resetCTFCards();
     renderCTFTimeline(0);
     renderCTFTalkingPoints(0);
 
@@ -1260,6 +1287,7 @@
 
           if (entry.phase && entry.phase !== ctfActivePhase) {
             ctfActivePhase = entry.phase;
+            highlightCTFCard(ctfActivePhase);
             renderCTFTimeline(ctfActivePhase);
             renderCTFTalkingPoints(ctfActivePhase);
           }
@@ -1278,6 +1306,7 @@
     document.getElementById('status-text').textContent = 'Idle';
     document.getElementById('ctf-launch-btn').disabled = false;
     document.getElementById('stop-btn-ctf').style.display = 'none';
+    highlightCTFCard(5); // marks all 4 as done
     renderCTFTimeline(4);
   }
 
@@ -1296,6 +1325,7 @@
     // CTF tab
     document.getElementById('ctf-launch-btn').disabled = false;
     document.getElementById('stop-btn-ctf').style.display = 'none';
+    resetCTFCards();
     addCTFLog({ type: 'info', message: 'CTF scenario stopped by user.' });
   };
 </script>
