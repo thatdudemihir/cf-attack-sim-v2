@@ -199,6 +199,8 @@ PHASES = [
             "Create S1 Threat Intelligence IOC for the IP → "
             "Page on-call SOC analyst via PagerDuty."
         ),
+        "fire_one":  fire_phase_1_one,
+        "fire_many": fire_phase_1_many,
     },
     {
         "number": 2,
@@ -233,6 +235,8 @@ PHASES = [
             "(JA4 fingerprint firewall rule). "
             "S1 Purple AI summarizes the polymorphic bot campaign into a single threat narrative."
         ),
+        "fire_one":  fire_phase_2_one,
+        "fire_many": fire_phase_2_many,
     },
     {
         "number": 3,
@@ -269,6 +273,8 @@ PHASES = [
             "Auto-revoke API keys associated with source IP → "
             "CF Firewall for AI: increase sensitivity threshold for this tenant."
         ),
+        "fire_one":  fire_phase_3_one,
+        "fire_many": fire_phase_3_many,
     },
     {
         "number": 4,
@@ -307,5 +313,7 @@ PHASES = [
             "(6) Notify CF customer via webhook → "
             "Entire response: automated in under 90 seconds."
         ),
+        "fire_one":  fire_phase_4_one,
+        "fire_many": fire_phase_4_many,
     },
 ]
